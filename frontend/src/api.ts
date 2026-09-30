@@ -43,12 +43,31 @@ export const api = {
   summary: () => req<Summary>("/summary"),
   addTransaction: (t: NewTransaction) => req<Transaction>("/transactions", { method: "POST", body: JSON.stringify(t) }),
   deleteTransaction: (id: number) => req<void>(`/transactions/${id}`, { method: "DELETE" }),
+  updateWallet: (id: number, patch: Partial<Pick<Wallet, "name" | "initial_balance">>) =>
+    req<Wallet>(`/wallets/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  addCategory: (c: Omit<Category, "id">) => req<Category>("/categories", { method: "POST", body: JSON.stringify(c) }),
+  updateCategory: (id: number, patch: Partial<Omit<Category, "id">>) =>
+    req<Category>(`/categories/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteCategory: (id: number) => req<void>(`/categories/${id}`, { method: "DELETE" }),
 };
 
 // Деньги: в API — тыйыны (целые), в интерфейсе — сомы.
 export function formatSom(tyiyn: number): string {
   const som = tyiyn / 100;
   return som.toLocaleString("ru-RU", { minimumFractionDigits: tyiyn % 100 ? 2 : 0, maximumFractionDigits: 2 }) + " сом";
+}
+
+/** Число без «сом», с пробелами между разрядами: 125050 -> "1 250,5". */
+export function formatNum(tyiyn: number): string {
+  const som = Math.abs(tyiyn) / 100;
+  return som.toLocaleString("ru-RU", { minimumFractionDigits: tyiyn % 100 ? 2 : 0, maximumFractionDigits: 2 });
+}
+
+/** Сумма для поля ввода: 125050 -> "1250,5" (без разделителей). */
+export function toInputSom(tyiyn: number): string {
+  const whole = Math.trunc(tyiyn / 100);
+  const frac = Math.abs(tyiyn % 100);
+  return frac ? `${whole},${String(frac).padStart(2, "0")}` : String(whole);
 }
 
 /** "1 250,50" -> 125050; null, если не число. Без float-арифметики над деньгами. */
