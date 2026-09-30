@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, Category, formatNum, Summary, Transaction, Wallet } from "./api";
+import { api, AuthError, Category, formatNum, setUnauthorizedHandler, Summary, Transaction, Wallet } from "./api";
 import Home from "./components/Home";
+import PinScreen from "./components/PinScreen";
 import Record from "./components/Record";
 import Settings from "./components/Settings";
 import { errText } from "./components/ui";
@@ -19,6 +20,8 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [screen, setScreen] = useState<ScreenName>("home");
+  // checking — ещё не знаем, вошли ли; locked — нужен PIN; ok — данные загружены
+  const [auth, setAuth] = useState<"checking" | "locked" | "ok">("checking");
   const [toast, setToast] = useState<{ text: string; txId: number } | null>(null);
   const toastTimer = useRef<number>();
 
@@ -27,12 +30,32 @@ export default function App() {
       const [w, c, s, t] = await Promise.all([api.wallets(), api.categories(), api.summary(), api.transactions(20)]);
       setWallets(w); setCategories(c); setSummary(s); setTransactions(t);
       setError(null);
+      setAuth("ok");
     } catch (e) {
+      if (e instanceof AuthError) return; // экран PIN покажет обработчик 401
       setError(errText(e, "Не удалось загрузить данные. Проверьте интернет."));
     }
   }, []);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      history.replaceState(null, "");
+      setScreen("home");
+      setToast(null);
+      setAuth("locked");
+    });
+    reload();
+    return () => setUnauthorizedHandler(null);
+  }, [reload]);
+
+  async function logout() {
+    try { await api.logout(); } catch { /* всё равно показываем экран PIN */ }
+    // данные не должны оставаться в памяти после выхода
+    setWallets([]); setCategories([]); setSummary(null); setTransactions([]);
+    history.replaceState(null, "");
+    setScreen("home");
+    setAuth("locked");
+  }
 
   // Кнопка «Назад» телефона закрывает экран, а не приложение
   useEffect(() => {
@@ -57,6 +80,13 @@ export default function App() {
 
   const today = summary?.today ?? localToday();
 
+  if (auth === "locked") {
+    return <PinScreen onSuccess={() => { setAuth("checking"); setError(null); reload(); }} />;
+  }
+  if (auth === "checking" && !error) {
+    return <main className="app"><p className="hint" style={{ textAlign: "center", marginTop: 64 }}>Загружаю…</p></main>;
+  }
+
   return (
     <main className="app">
       {screen === "home" && (
@@ -77,7 +107,7 @@ export default function App() {
         />
       )}
       {screen === "settings" && (
-        <Settings wallets={wallets} categories={categories} summary={summary} today={today} onBack={close} onChanged={reload} />
+        <Settings wallets={wallets} categories={categories} summary={summary} today={today} onBack={close} onChanged={reload} onLogout={logout} />
       )}
     </main>
   );

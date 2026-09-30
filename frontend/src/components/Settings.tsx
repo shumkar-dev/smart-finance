@@ -11,6 +11,7 @@ interface Props {
   today: string;
   onBack: () => void;
   onChanged: () => Promise<void> | void;
+  onLogout: () => void;
 }
 
 export default function Settings(props: Props) {
@@ -37,6 +38,9 @@ export default function Settings(props: Props) {
               </button>
             ))}
           </div>
+          <button className="btn btn-secondary" style={{ marginTop: 8 }} onClick={() => {
+            if (confirm("Выйти на этом устройстве? Чтобы войти снова, понадобится PIN-код.")) props.onLogout();
+          }}>Выйти на этом устройстве</button>
         </>
       )}
       {section === "transfer" && <Transfer {...props} />}

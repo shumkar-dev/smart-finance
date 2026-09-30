@@ -8,8 +8,9 @@
     "typecheck": "tsc --noEmit",
     "db:local": "wrangler d1 execute smart-finance-db --local --file=migrations/0001_schema.sql && wrangler d1 execute smart-finance-db --local --file=migrations/0002_seed_cleaning.sql",
     "dev": "wrangler dev",
-    "test": "node --test tests/api.test.mjs",
-    "deploy": "wrangler deploy"
+    "test": "node --test tests/api.test.mjs tests/auth.test.mjs",
+    "deploy": "wrangler deploy",
+    "test:lockout": "node --test tests/lockout.test.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260926.1",

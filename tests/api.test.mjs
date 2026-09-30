@@ -1,13 +1,26 @@
-// Сквозной тест. Запускать при работающем `npm run dev` на пустой (только что мигрированной) базе:
-//   BASE_URL=http://localhost:8787 npm test
+// Сквозной тест. Запускать при работающем `npm run dev` на пустой (только что мигрированной) базе
+// (в .dev.vars должен быть APP_PIN; по умолчанию тест использует 123456):
+//   BASE_URL=http://localhost:8787 APP_PIN=123456 npm test
 import test from "node:test";
 import assert from "node:assert/strict";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:8787";
+const PIN = process.env.APP_PIN ?? "123456";
+
+/** Вход по PIN; возвращает значение cookie для последующих запросов. */
+export async function login(pin = PIN) {
+  const res = await fetch(BASE + "/api/auth/login", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin }),
+  });
+  const setCookie = res.headers.get("set-cookie");
+  return { status: res.status, body: await res.json(), setCookie, cookie: setCookie?.split(";")[0] };
+}
+
+let session = "";
 const call = async (method, path, body) => {
   const res = await fetch(BASE + "/api" + path, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(session ? { Cookie: session } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -15,6 +28,9 @@ const call = async (method, path, body) => {
 };
 
 test("сквозной сценарий", async () => {
+  const l = await login();
+  assert.equal(l.status, 200);
+  session = l.cookie;
   const wallets = Object.fromEntries((await call("GET", "/wallets")).body.map((w) => [w.name, w.id]));
   assert.deepEqual(Object.keys(wallets).sort(), ["Бизнес", "Личное"]);
   await call("PATCH", `/wallets/${wallets["Бизнес"]}`, { initial_balance: 100000 });

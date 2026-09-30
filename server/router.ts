@@ -1,3 +1,4 @@
+import { authRoute, isAuthenticated } from "./auth";
 import { Env, HttpError, errorResponse, parseId } from "./http";
 import { categories } from "./categories";
 import { summary } from "./summary";
@@ -10,9 +11,13 @@ export async function handleApi(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
     const [resource, idPart, ...rest] = parts;
+    const method = request.method;
+
+    // Вход и выход — единственные открытые маршруты; всё остальное только с действующей cookie
+    if (resource === "auth") return await authRoute(request, env, idPart, rest);
+    if (!(await isAuthenticated(request, env))) throw new HttpError(401, "Нужен вход по PIN-коду");
     if (rest.length) throw new HttpError(404, "Не найдено");
 
-    const method = request.method;
     const id = idPart === undefined ? undefined : parseId(idPart);
     const notAllowed = () => new HttpError(405, "Метод не поддерживается");
 

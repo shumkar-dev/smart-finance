@@ -1,17 +1,20 @@
 export interface Env {
   DB: D1Database;
+  /** Секрет Cloudflare: PIN-код из 4–6 цифр. Не хранится в коде и репозитории. */
+  APP_PIN?: string;
 }
 
 export class HttpError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(public status: number, message: string, public headers?: Record<string, string>) {
     super(message);
   }
 }
 
-export function json(data: unknown, status = 200): Response {
+export function json(data: unknown, status = 200, headers: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    // no-store: ответы с финансовыми данными не должны оседать в кэше браузера или прокси
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...headers },
   });
 }
 
@@ -19,7 +22,7 @@ export const noContent = () => new Response(null, { status: 204 });
 
 /** Тело ответа об ошибке: {detail: "..."} — формат, который ждёт фронтенд. */
 export function errorResponse(e: unknown): Response {
-  if (e instanceof HttpError) return json({ detail: e.message }, e.status);
+  if (e instanceof HttpError) return json({ detail: e.message }, e.status, e.headers);
   console.error(e);
   return json({ detail: "Внутренняя ошибка сервера" }, 500);
 }

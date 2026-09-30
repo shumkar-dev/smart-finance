@@ -121,3 +121,9 @@ button:disabled { opacity: .4; cursor: default; }
 .del-col button { color: var(--expense); font-size: 16px; font-weight: 600; min-height: 44px; padding: 0 4px; }
 
 @media (min-width: 521px) { .app { padding-top: 12px; } }
+
+/* экран PIN */
+.pin { gap: 16px; padding-top: 8px; }
+.pin-dots { display: flex; justify-content: center; gap: 16px; min-height: 28px; }
+.pin-dots i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); }
+.pin-dots i.on { background: var(--accent); border-color: var(--accent); }

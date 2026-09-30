@@ -19,11 +19,26 @@ export interface Summary {
   categories: { category_id: number; name: string; wallet_id: number; spent: number; monthly_limit: number | null; percent: number | null }[];
 }
 
+/** Сервер ответил 401: нужен вход по PIN-коду. */
+export class AuthError extends Error {
+  constructor() { super("Нужен вход по PIN-коду"); }
+}
+
+let onUnauthorized: (() => void) | null = null;
+/** App подписывается сюда, чтобы на любой 401 показать экран PIN. */
+export function setUnauthorizedHandler(fn: (() => void) | null) { onUnauthorized = fn; }
+
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
     headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
     ...init,
   });
+  // 401 на /auth/login — это «неверный код», он разбирается ниже как обычная ошибка
+  if (res.status === 401 && path !== "/auth/login") {
+    onUnauthorized?.();
+    throw new AuthError();
+  }
   if (!res.ok) {
     let msg = `Ошибка ${res.status}`;
     try {
@@ -37,6 +52,8 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  login: (pin: string) => req<{ ok: true }>("/auth/login", { method: "POST", body: JSON.stringify({ pin }) }),
+  logout: () => req<{ ok: true }>("/auth/logout", { method: "POST" }),
   wallets: () => req<Wallet[]>("/wallets"),
   categories: () => req<Category[]>("/categories"),
   transactions: (limit = 20) => req<Transaction[]>(`/transactions?limit=${limit}`),
