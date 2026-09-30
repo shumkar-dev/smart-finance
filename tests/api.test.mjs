@@ -1,9 +1,9 @@
 // Сквозной тест. Запускать при работающем `npm run dev` на пустой (только что мигрированной) базе:
-//   BASE_URL=http://localhost:8788 npm test
+//   BASE_URL=http://localhost:8787 npm test
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const BASE = process.env.BASE_URL ?? "http://localhost:8788";
+const BASE = process.env.BASE_URL ?? "http://localhost:8787";
 const call = async (method, path, body) => {
   const res = await fetch(BASE + "/api" + path, {
     method,

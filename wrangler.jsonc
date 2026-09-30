@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "smart-finance",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-06-01",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./frontend/dist",
+    "binding": "ASSETS",
+    // /api/* всегда обрабатывает Worker, остальные пути — статика
+    "run_worker_first": ["/api/*"],
+    // любой неизвестный путь открывает index.html (одностраничное приложение)
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "smart-finance-db",
+      // Вставьте сюда ID своей базы из панели Cloudflare (Storage & databases → D1)
+      "database_id": "PASTE_ID_HERE",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

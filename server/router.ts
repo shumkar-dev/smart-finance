@@ -1,17 +1,17 @@
-import { Env, HttpError, errorResponse, parseId } from "../../server/http";
-import { categories } from "../../server/categories";
-import { summary } from "../../server/summary";
-import { transactions } from "../../server/transactions";
-import { wallets } from "../../server/wallets";
+import { Env, HttpError, errorResponse, parseId } from "./http";
+import { categories } from "./categories";
+import { summary } from "./summary";
+import { transactions } from "./transactions";
+import { wallets } from "./wallets";
 
-// Единая точка входа для всех /api/*. Один файл — проще следить за маршрутами.
-export const onRequest: PagesFunction<Env> = async ({ request, env, params }) => {
+/** Обрабатывает запросы /api/*. Все маршруты — в одном месте. */
+export async function handleApi(request: Request, env: Env): Promise<Response> {
   try {
-    const parts = ([] as string[]).concat((params.path as string[] | string | undefined) ?? []);
+    const url = new URL(request.url);
+    const parts = url.pathname.replace(/^\/api\/?/, "").split("/").filter(Boolean);
     const [resource, idPart, ...rest] = parts;
     if (rest.length) throw new HttpError(404, "Не найдено");
 
-    const url = new URL(request.url);
     const method = request.method;
     const id = idPart === undefined ? undefined : parseId(idPart);
     const notAllowed = () => new HttpError(405, "Метод не поддерживается");
@@ -39,7 +39,7 @@ export const onRequest: PagesFunction<Env> = async ({ request, env, params }) =>
       return await summary(env, url);
     }
 
-    const h = crud[resource as keyof typeof crud];
+    const h = Object.hasOwn(crud, resource ?? "") ? crud[resource as keyof typeof crud] : undefined;
     if (!h) throw new HttpError(404, "Не найдено");
 
     if (id === undefined) {
@@ -55,4 +55,4 @@ export const onRequest: PagesFunction<Env> = async ({ request, env, params }) =>
   } catch (e) {
     return errorResponse(e);
   }
-};
+}

@@ -1,9 +1,0 @@
-# Только для локальных миграций (npm run db:local). Cloudflare Pages этот файл игнорирует —
-# при деплое из GitHub binding базы DB настраивается в панели Cloudflare.
-name = "smart-finance"
-compatibility_date = "2025-01-01"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "smart-finance"
-database_id = "local"

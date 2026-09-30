@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
-    // в разработке /api проксируется на wrangler pages dev
-    proxy: { "/api": "http://localhost:8788" },
+    // в разработке /api проксируется на wrangler dev
+    proxy: { "/api": "http://localhost:8787" },
   },
 });

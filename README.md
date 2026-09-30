@@ -1,7 +1,7 @@
 # Умная заметка — личный бухгалтер
 
-Учёт личных и бизнес-денег (сом). Всё работает на Cloudflare: сайт и API — один проект **Cloudflare Pages**,
-данные — база **Cloudflare D1**. Каждый пуш в GitHub автоматически выкладывается.
+Учёт личных и бизнес-денег (сом). Всё работает на Cloudflare как один **Worker со статическими файлами**:
+сайт, API и база данных **D1**. Каждый пуш в `main` на GitHub автоматически выкладывается.
 
 Суммы хранятся целыми числами в **тыйынах** (1 сом = 100 тыйынов). Остатки и итоги считаются запросами.
 
@@ -9,8 +9,10 @@
 
 | Папка / файл | Что это |
 |---|---|
+| `wrangler.jsonc` | настройки Worker: статика, база D1 |
+| `src/worker.ts` | точка входа: `/api/*` → API, всё остальное → сайт |
+| `server/` | код API (кошельки, категории, операции, сводка) |
 | `frontend/` | сайт (React + Vite, PWA) |
-| `functions/api/[[path]].ts`, `server/` | API (`/api/...`), работает как Cloudflare Pages Functions |
 | `migrations/0001_schema.sql` | создаёт таблицы |
 | `migrations/0002_seed_cleaning.sql` | кошельки «Личное»/«Бизнес» и категории шаблона «Клининг» |
 
@@ -18,57 +20,48 @@
 
 ## Как запустить: пошагово, без терминала
 
-Нужен аккаунт Cloudflare и этот репозиторий на GitHub.
+Нужны аккаунт Cloudflare и этот репозиторий на GitHub. Репозиторий уже подключён к Cloudflare как Worker
+(**Build command** `npm run build`, **Deploy command** `npx wrangler deploy`, **Root directory** `/`).
 
 ### Шаг 1. Создать базу D1
 1. Зайдите на [dash.cloudflare.com](https://dash.cloudflare.com).
-2. В меню слева: **Storage & databases** (или **Workers & Pages**) → **D1 SQL database**.
-3. Нажмите **Create database** (Создать базу).
-4. Название: `smart-finance` → **Create**.
+2. В меню слева: **Storage & databases** → **D1 SQL database** → **Create database**.
+3. Название: **`smart-finance-db`** (именно такое) → **Create**.
+4. На странице базы найдите **Database ID** (длинная строка вида `1a2b3c4d-....`) и скопируйте её.
 
-### Шаг 2. Создать проект Pages из GitHub
-1. В меню слева: **Workers & Pages** → **Create application** → вкладка **Pages** → **Connect to Git**.
-2. Выберите GitHub-аккаунт и репозиторий `smart-finance` → **Begin setup**.
-3. Заполните настройки сборки:
-   - **Production branch:** ветка, из которой выкладываете (например `main`)
-   - **Framework preset:** `None`
-   - **Build command:** `npm run build`
-   - **Build output directory:** `frontend/dist`
-   - **Root directory:** оставьте пустым
-4. Нажмите **Save and Deploy**. Первая сборка пройдёт, но сайт пока покажет ошибку, потому что база ещё не подключена — это нормально.
+### Шаг 2. Вписать ID базы в проект
+1. Откройте репозиторий на GitHub → файл **`wrangler.jsonc`**.
+2. Нажмите значок карандаша ✏️ (Edit this file).
+3. Найдите строку `"database_id": "PASTE_ID_HERE"` и замените `PASTE_ID_HERE` на скопированный ID (кавычки оставьте).
+4. Нажмите **Commit changes** (коммит прямо в `main`).
 
-### Шаг 3. Подключить базу к проекту (binding)
-1. Откройте созданный проект: **Workers & Pages** → `smart-finance`.
-2. Вкладка **Settings** → раздел **Bindings** (в старом интерфейсе: **Functions** → **D1 database bindings**).
-3. **Add** → **D1 database**.
-4. **Variable name:** строго `DB` (заглавными буквами).
-5. **D1 database:** выберите `smart-finance` → **Save**.
-6. Если панель предлагает разное для Production и Preview — добавьте одинаково в оба.
+Cloudflare сам начнёт новую сборку и выкладку. **Пока ID не вписан, выкладка падает с ошибкой — это нормально.**
 
-### Шаг 4. Применить миграции (создать таблицы и категории)
-1. **Storage & databases** → **D1 SQL database** → откройте `smart-finance` → вкладка **Console**.
-2. На GitHub откройте файл `migrations/0001_schema.sql`, нажмите кнопку **Copy raw file** (значок копирования справа над файлом).
-3. Вставьте текст в окно Console → **Execute**. Должно появиться сообщение об успехе.
+### Шаг 3. Создать таблицы и категории (миграции)
+1. **Storage & databases** → **D1 SQL database** → `smart-finance-db` → вкладка **Console**.
+2. На GitHub откройте `migrations/0001_schema.sql` → кнопка **Copy raw file** (значок копирования над файлом).
+3. Вставьте в окно Console → **Execute**. Должно появиться сообщение об успехе.
 4. Так же выполните `migrations/0002_seed_cleaning.sql`.
-   **Выполняйте по одному разу и строго в этом порядке** — повторный запуск выдаст ошибку (это защита от дублей).
-5. Проверка: во вкладке **Tables** должны быть `wallets`, `categories`, `transactions`.
+   **Каждый файл — один раз и строго в этом порядке.** Повторный запуск выдаст ошибку (это защита от дублей).
+5. Проверка: вкладка **Tables** — должны быть `wallets`, `categories`, `transactions`.
 
-### Шаг 5. Перезапустить деплой и получить ссылку
-Binding подхватывается только новым деплоем:
-1. Проект → вкладка **Deployments** → у последнего деплоя **⋯** → **Retry deployment**.
-2. Когда статус станет **Success**, вверху проекта будет ссылка вида `https://smart-finance-xxx.pages.dev` — это и есть ваше приложение.
+### Шаг 4. Открыть приложение
+1. **Workers & Pages** → **`smart-finance`** → вкладка **Deployments**: у последней выкладки должен быть статус **Success**.
+   Если она красная — откройте её и прочитайте ошибку (см. ниже); после исправления нажмите **Retry** или сделайте любой коммит.
+2. Ссылка на приложение — на странице Worker, блок **Domains & Routes** (вид `https://smart-finance.ВАШ-АККАУНТ.workers.dev`).
 3. Проверка API: откройте `https://ваша-ссылка/api/wallets` — должен показаться список из двух кошельков.
 
-Дальше просто пушьте в GitHub — Cloudflare сам пересоберёт и выложит. Данные в базе при этом не затрагиваются.
+Дальше просто коммитьте в `main` — Cloudflare сам пересоберёт и выложит. Данные в базе при этом не затрагиваются.
 
 > ⚠️ **Доступ.** В этой версии нет входа по паролю: у кого есть ссылка, тот видит и меняет данные.
 > Не публикуйте ссылку. Защиту (например, Cloudflare Access — бесплатно до 50 пользователей:
 > **Zero Trust → Access → Applications**) стоит включить до реального использования.
 
 ### Если что-то не работает
-- **Сайт открывается, но «Ошибка 500» или пусто** — не подключён binding `DB` (шаг 3) или после него не сделан **Retry deployment** (шаг 5).
-- **Ошибка `no such table`** — не выполнены миграции (шаг 4).
-- **Ошибка сборки** — проверьте Build command и Output directory в **Settings → Builds**.
+- **Сборка красная, в тексте `PASTE_ID_HERE` / `database_id` / `D1`** — не вписан ID базы (шаг 2), либо база названа не `smart-finance-db`.
+- **Сайт открывается, но «Ошибка 500» / `no such table`** — не выполнены миграции (шаг 3).
+- **Сайт открывается, а `/api/wallets` выдаёт «Не найдено»** — проверьте, что выкладка последнего коммита со статусом Success.
+- **Ошибка на `npm install`** — не меняйте версии `wrangler` и `@cloudflare/workers-types` в `package.json` по отдельности: они связаны.
 
 ---
 
@@ -77,11 +70,14 @@ Binding подхватывается только новым деплоем:
 ```bash
 npm install
 npm run build && npm run db:local     # один раз: собрать сайт и создать локальную базу с сидом
-npm run dev                           # сайт и API на http://localhost:8788
+npm run dev                           # сайт и API на http://localhost:8787
 ```
 
-Проверки: `npm run typecheck`; сквозной тест API при запущенном `npm run dev` на свежей базе: `npm test`.
-Чтобы сбросить локальную базу, удалите папку `.wrangler` и повторите `npm run db:local`.
+Локально база хранится в папке `.wrangler` (ID из `wrangler.jsonc` при этом не используется).
+Чтобы сбросить её, удалите `.wrangler` и повторите `npm run db:local`.
+Проверки: `npm run typecheck`; сквозной тест API при запущенном `npm run dev` на свежей базе:
+`BASE_URL=http://localhost:8787 npm test`.
+Frontend отдельно с горячей перезагрузкой: `cd frontend && npm run dev` (запросы `/api` уходят на порт 8787).
 
 ## API
 

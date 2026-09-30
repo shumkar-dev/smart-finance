@@ -1,18 +1,19 @@
 {
   "name": "smart-finance",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "build": "npm --prefix frontend install && npm --prefix frontend run build",
     "typecheck": "tsc --noEmit",
-    "db:local": "wrangler d1 execute smart-finance --local -c wrangler.dev.toml --file=migrations/0001_schema.sql && wrangler d1 execute smart-finance --local -c wrangler.dev.toml --file=migrations/0002_seed_cleaning.sql",
-    "dev": "wrangler pages dev frontend/dist --d1 DB=local",
-    "test": "node --test tests/api.test.mjs"
+    "db:local": "wrangler d1 execute smart-finance-db --local --file=migrations/0001_schema.sql && wrangler d1 execute smart-finance-db --local --file=migrations/0002_seed_cleaning.sql",
+    "dev": "wrangler dev",
+    "test": "node --test tests/api.test.mjs",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20250101.0",
+    "@cloudflare/workers-types": "^5.20260926.1",
     "typescript": "^5.5.3",
-    "wrangler": "^3.99.0"
+    "wrangler": "^4.0.0"
   }
 }
