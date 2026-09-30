@@ -16,8 +16,7 @@
     {
       "binding": "DB",
       "database_name": "smart-finance-db",
-      // Вставьте сюда ID своей базы из панели Cloudflare (Storage & databases → D1)
-      "database_id": "PASTE_ID_HERE",
+      "database_id": "9ece83ae-d83d-4b78-b87e-5b62f6c8f4b5",
       "migrations_dir": "migrations"
     }
   ]
