@@ -127,3 +127,5 @@ button:disabled { opacity: .4; cursor: default; }
 .pin-dots { display: flex; justify-content: center; gap: 16px; min-height: 28px; }
 .pin-dots i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--muted); }
 .pin-dots i.on { background: var(--accent); border-color: var(--accent); }
+.pin-info { min-height: 76px; display: flex; align-items: center; justify-content: center; text-align: center; }
+.pin-info .error { width: 100%; text-align: left; }

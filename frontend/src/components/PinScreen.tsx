@@ -43,14 +43,19 @@ export default function PinScreen({ onSuccess }: { onSuccess: () => void }) {
   return (
     <main className="app">
       <div className="screen pin">
-        <h1 className="title" style={{ textAlign: "center", marginTop: 32 }}>Введите код</h1>
-        <p className="hint" style={{ textAlign: "center" }}>Код из 4–6 цифр</p>
+        <h1 className="title" style={{ textAlign: "center", marginTop: 16 }}>Введите код</h1>
 
-        <div className="pin-dots" aria-label={`Введено цифр: ${pin.length}`}>
-          {Array.from({ length: Math.max(MIN, pin.length) }, (_, i) => <i key={i} className={i < pin.length ? "on" : ""} />)}
+        {/* одно место для подсказки или ошибки — чтобы клавиатура не прыгала */}
+        <div className="pin-info">
+          {error
+            ? <ErrorBox message={error} />
+            : <p className="hint">{pin.length < MIN ? "Код из 4–6 цифр" : "Когда введёте весь код, нажмите «Войти»"}</p>}
         </div>
 
-        <div style={{ minHeight: 84 }}>{error && <ErrorBox message={error} />}</div>
+        {/* кружок появляется с каждой введённой цифрой (до 6); код сам никогда не отправляется */}
+        <div className="pin-dots" aria-label={`Введено цифр: ${pin.length}`}>
+          {Array.from({ length: pin.length }, (_, i) => <i key={i} className="on" />)}
+        </div>
 
         <div className="keypad">
           {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
