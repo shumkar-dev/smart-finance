@@ -1,0 +1,12 @@
+{
+  "name": "Умная заметка",
+  "short_name": "Финансы",
+  "lang": "ru",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
